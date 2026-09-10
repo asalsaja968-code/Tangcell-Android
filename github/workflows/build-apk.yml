@@ -1,0 +1,48 @@
+name: Build TangCell APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ambil kode
+        uses: actions/checkout@v4
+
+      - name: Siapkan Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Siapkan Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Ekstrak project Android
+        run: |
+          mkdir -p android-project
+          unzip -o TangCell-Android-v1.zip -d android-project
+
+      - name: Cari Gradle Wrapper
+        run: |
+          GRADLEW=$(find android-project -name gradlew -type f | head -n 1)
+          if [ -z "$GRADLEW" ]; then
+            echo "gradlew tidak ditemukan"
+            find android-project -maxdepth 4 -type f | head -100
+            exit 1
+          fi
+          echo "GRADLEW=$GRADLEW" >> $GITHUB_ENV
+
+      - name: Build APK
+        run: |
+          chmod +x "$GRADLEW"
+          cd "$(dirname "$GRADLEW")"
+          ./gradlew assembleDebug
+
+      - name: Simpan APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TangCell-APK
+          path: android-project/**/build/outputs/apk/**/*.apk
